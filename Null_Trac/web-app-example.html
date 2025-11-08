@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RunAnywhere Web Chat</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .chat-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .model-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .model-list {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        
+        .model-item {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .model-item:hover {
+            background: #e9ecef;
+        }
+        
+        .model-item.downloaded {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+        
+        .model-item.loaded {
+            background: #007bff;
+            color: white;
+        }
+        
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #fafafa;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .message.user {
+            background: #007bff;
+            color: white;
+            margin-left: 20%;
+        }
+        
+        .message.assistant {
+            background: #e9ecef;
+            margin-right: 20%;
+        }
+        
+        .input-section {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .message-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        
+        .send-btn {
+            padding: 12px 24px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .send-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            margin-top: 10px;
+            padding: 8px;
+            text-align: center;
+            font-size: 14px;
+            border-radius: 4px;
+        }
+        
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #007bff;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+<div class="chat-container">
+    <h1>RunAnywhere Web Chat</h1>
+    <p>On-device AI chat running entirely in your browser</p>
+
+    <!-- Model Management Section -->
+    <div class="model-section">
+        <h3>Available Models</h3>
+        <div class="model-list" id="modelList">
+            <!-- Models will be populated here -->
+        </div>
+        <div class="status" id="modelStatus"></div>
+        <div class="progress-bar" id="progressBar" style="display: none;">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+    </div>
+
+    <!-- Chat Section -->
+    <div class="chat-messages" id="chatMessages">
+        <div class="message assistant">
+            <strong>Assistant:</strong> Hello! I'm an AI assistant running entirely in your browser.
+            Please download and load a model to start chatting.
+        </div>
+    </div>
+
+    <div class="input-section">
+        <input
+                type="text"
+                class="message-input"
+                id="messageInput"
+                placeholder="Type your message here..."
+                disabled
+        >
+        <button class="send-btn" id="sendBtn" disabled>Send</button>
+    </div>
+
+    <div class="status" id="chatStatus"></div>
+</div>
+
+<script>
+
+    // Web version of RunAnywhere SDK integration
+    // Note: This is conceptual - actual SDK integration would differ
+
+    class RunAnywhereWebChat {
+        constructor() {
+            this.models = [
+                {
+                    id: 'smollm2-360m',
+                    name: 'SmolLM2 360M Q8_0',
+                    size: '119 MB',
+                    url: 'https://huggingface.co/prithivMLmods/SmolLM2-360M-GGUF/resolve/main/SmolLM2-360M.Q8_0.gguf',
+                    downloaded: false,
+                    loaded: false
+                },
+                {
+                    id: 'qwen-0.5b',
+                    name: 'Qwen 2.5 0.5B Instruct Q6_K',
+                    size: '374 MB',
+                    url: 'https://huggingface.co/Triangle104/Qwen2.5-0.5B-Instruct-Q6_K-GGUF/resolve/main/qwen2.5-0.5b-instruct-q6_k.gguf',
+                    downloaded: false,
+                    loaded: false
+                }
+            ];
+
+            this.currentModel = null;
+            this.messages = [];
+
+            this.initializeUI();
+        }
+
+        async initialize() {
+            try {
+                // Conceptual SDK initialization
+                // await RunAnywhere.init({
+                //     apiKey: 'dev',
+                //     environment: 'development'
+                // });
+
+                this.updateStatus('chatStatus', 'SDK initialized successfully', 'success');
+                this.renderModels();
+            } catch (error) {
+                this.updateStatus('chatStatus', `Initialization failed: ${error.message}`, 'error');
+            }
+        }
+
+        initializeUI() {
+            // Send button click handler
+            document.getElementById('sendBtn').addEventListener('click', () => {
+                this.sendMessage();
+            });
+
+            // Enter key handler
+            document.getElementById('messageInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.sendMessage();
+                }
+            });
+
+            // Initialize the app
+            this.initialize();
+        }
+
+        renderModels() {
+            const modelList = document.getElementById('modelList');
+            modelList.innerHTML = '';
+
+            this.models.forEach(model => {
+                const modelDiv = document.createElement('div');
+                modelDiv.className = `model-item ${model.downloaded ? 'downloaded' : ''} ${model.loaded ? 'loaded' : ''}`;
+                modelDiv.innerHTML = `
+                    <div><strong>${model.name}</strong></div>
+                    <div style="font-size: 12px; color: #666;">${model.size}</div>
+                    <div style="margin-top: 5px;">
+                        ${!model.downloaded ?
+                            `<button onclick="app.downloadModel('${model.id}')" style="font-size: 12px; padding: 2px 8px;">Download</button>` :
+                            !model.loaded ?
+                                `<button onclick="app.loadModel('${model.id}')" style="font-size: 12px; padding: 2px 8px;">Load</button>` :
+                                '<span style="color: #007bff; font-size: 12px;">Loaded ✓</span>'
+                        }
+                    </div>
+                `;
+                modelList.appendChild(modelDiv);
+            });
+        }
+
+        async downloadModel(modelId) {
+            const model = this.models.find(m => m.id === modelId);
+            if (!model) return;
+
+            try {
+                this.updateStatus('modelStatus', `Downloading ${model.name}...`, 'loading');
+                this.showProgress(true);
+
+                // Simulate download progress
+                for (let i = 0; i <= 100; i += 10) {
+                    this.updateProgress(i);
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+
+                // Conceptual download
+                // await RunAnywhere.downloadModel(modelId, (progress) => {
+                //     this.updateProgress(progress * 100);
+                // });
+
+                model.downloaded = true;
+                this.updateStatus('modelStatus', `${model.name} downloaded successfully!`, 'success');
+                this.showProgress(false);
+                this.renderModels();
+
+            } catch (error) {
+                this.updateStatus('modelStatus', `Download failed: ${error.message}`, 'error');
+                this.showProgress(false);
+            }
+        }
+
+        async loadModel(modelId) {
+            const model = this.models.find(m => m.id === modelId);
+            if (!model) return;
+
+            try {
+                this.updateStatus('modelStatus', `Loading ${model.name}...`, 'loading');
+
+                // Unload current model
+                this.models.forEach(m => m.loaded = false);
+
+                // Simulate loading time
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                // Conceptual model loading
+                // const success = await RunAnywhere.loadModel(modelId);
+                const success = true; // Simulated success
+
+                if (success) {
+                    model.loaded = true;
+                    this.currentModel = model;
+                    this.updateStatus('modelStatus', `${model.name} loaded! Ready to chat.`, 'success');
+                    this.updateStatus('chatStatus', 'Model loaded! You can now start chatting.', 'success');
+
+                    // Enable chat input
+                    document.getElementById('messageInput').disabled = false;
+                    document.getElementById('sendBtn').disabled = false;
+                } else {
+                    this.updateStatus('modelStatus', 'Failed to load model', 'error');
+                }
+
+                this.renderModels();
+
+            } catch (error) {
+                this.updateStatus('modelStatus', `Load failed: ${error.message}`, 'error');
+            }
+        }
+
+        async sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (!message || !this.currentModel) return;
+
+            // Add user message
+            this.addMessage(message, true);
+            input.value = '';
+
+            // Disable input during generation
+            input.disabled = true;
+            document.getElementById('sendBtn').disabled = true;
+            this.updateStatus('chatStatus', 'Generating response...', 'loading');
+
+            try {
+                // Conceptual text generation with streaming
+                // const response = await RunAnywhere.generateStream(message);
+
+                // Simulate streaming response
+                const responses = [
+                    "I'm an AI assistant running entirely in your browser! ",
+                    "Thanks to RunAnywhere SDK, I can process your messages ",
+                    "locally without sending any data to external servers. ",
+                    "This ensures complete privacy while providing fast responses. ",
+                    "What would you like to know?"
+                ];
+
+                let fullResponse = '';
+                const assistantMessageId = this.addMessage('', false);
+
+                for (const chunk of responses) {
+                    fullResponse += chunk;
+                    this.updateMessage(assistantMessageId, fullResponse);
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                }
+
+                this.updateStatus('chatStatus', 'Response generated successfully', 'success');
+
+            } catch (error) {
+                this.addMessage(`Error: ${error.message}`, false);
+                this.updateStatus('chatStatus', `Generation failed: ${error.message}`, 'error');
+            } finally {
+                // Re-enable input
+                input.disabled = false;
+                document.getElementById('sendBtn').disabled = false;
+                input.focus();
+            }
+        }
+
+        addMessage(text, isUser) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            const messageId = Date.now();
+
+            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+            messageDiv.id = `message-${messageId}`;
+            messageDiv.innerHTML = `<strong>${isUser ? 'You' : 'Assistant'}:</strong> ${text}`;
+
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            return messageId;
+        }
+
+        updateMessage(messageId, text) {
+            const messageDiv = document.getElementById(`message-${messageId}`);
+            if (messageDiv) {
+                messageDiv.innerHTML = `<strong>Assistant:</strong> ${text}`;
+            }
+        }
+
+        updateStatus(elementId, message, type) {
+            const statusDiv = document.getElementById(elementId);
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+
+            if (type === 'success' || type === 'error') {
+                setTimeout(() => {
+                    statusDiv.textContent = '';
+                    statusDiv.className = 'status';
+                }, 3000);
+            }
+        }
+
+        showProgress(show) {
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.display = show ? 'block' : 'none';
+            if (!show) {
+                this.updateProgress(0);
+            }
+        }
+
+        updateProgress(percentage) {
+            const progressFill = document.getElementById('progressFill');
+            progressFill.style.width = `${percentage}%`;
+        }
+    }
+
+    // Initialize the app
+    const app = new RunAnywhereW
+t();
+</script>
+</body>
+</html>
